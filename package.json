@@ -1,8 +1,21 @@
 {
   "name": "widget-cpiq-web",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Widget embebible del CPIQ — punto de entrada al panel externo.",
+  "license": "UNLICENSED",
+  "description": "Widget embebible oficial del Consejo Profesional de Ingeniería Química (CPIQ). Punto de entrada al portal de trámites.",
+  "author": "Consejo Profesional de Ingeniería Química",
+  "keywords": [
+    "cpiq",
+    "widget",
+    "chat",
+    "next.js",
+    "tailwind",
+    "embed"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

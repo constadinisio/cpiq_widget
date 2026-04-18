@@ -2,17 +2,13 @@
 
 import { useCallback, useState } from 'react';
 import { buildPanelUrl, type PanelAction, type PanelActionId } from '@/lib/panel-routes';
+import { BRANDING } from '@/lib/branding';
 import type { ChatMessage } from '@/app/types';
 
-const WELCOME_TEXT = 'Hola, soy el asistente del CPIQ. ¿Con qué te puedo ayudar hoy?';
 const TYPING_DELAY_MS = 650;
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
-}
-
-function confirmationText(label: string): string {
-  return `Genial. Te llevamos al portal para continuar con ${label.toLowerCase()}.`;
 }
 
 interface UseChatFlowArgs {
@@ -33,7 +29,7 @@ export function useChatFlow({ clientId, onNavigate }: UseChatFlowArgs): UseChatF
       id: 'welcome',
       role: 'bot',
       kind: 'text',
-      text: WELCOME_TEXT,
+      text: BRANDING.chat.welcome,
       createdAt: Date.now()
     }
   ]);
@@ -66,14 +62,14 @@ export function useChatFlow({ clientId, onNavigate }: UseChatFlowArgs): UseChatF
             id: uid(),
             role: 'bot',
             kind: 'text',
-            text: confirmationText(action.label),
+            text: BRANDING.chat.confirmationFor(action.label),
             createdAt: Date.now()
           },
           {
             id: uid(),
             role: 'bot',
             kind: 'cta',
-            text: 'Abrir en el portal',
+            text: BRANDING.chat.ctaText,
             href,
             actionId,
             createdAt: Date.now()

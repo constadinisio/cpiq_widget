@@ -293,16 +293,29 @@
     return ifr;
   }
 
-  var state = { open: false };
+  var state = { open: false, previousFocus: null };
 
   function toggle(next) {
     var open = typeof next === 'boolean' ? next : !state.open;
+    var wasOpen = state.open;
     state.open = open;
     var ifr = document.getElementById(IFR_ID);
     var btn = document.getElementById(BTN_ID);
     if (ifr) ifr.classList.toggle('cpiq-open', open);
     if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) hideTeaser(false);
+
+    if (open) {
+      hideTeaser(false);
+      state.previousFocus = document.activeElement;
+      /* Give browser a tick before moving focus into the iframe */
+      window.setTimeout(function () {
+        if (ifr && state.open) try { ifr.focus(); } catch (_) { /* noop */ }
+      }, 120);
+    } else if (wasOpen && state.previousFocus && typeof state.previousFocus.focus === 'function') {
+      try { state.previousFocus.focus(); } catch (_) { /* noop */ }
+      state.previousFocus = null;
+    }
+
     emit('toggle', { open: open });
   }
 
@@ -348,6 +361,10 @@
     }
 
     window.addEventListener('message', handleMessage);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && state.open) toggle(false);
+    });
+
     emit('mounted', { clientId: clientId, version: version });
     if (cfg.autoOpen) toggle(true);
   }

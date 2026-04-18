@@ -1,10 +1,9 @@
+import { BRANDING } from '@/lib/branding';
 import { IconClose } from '@/components/icons';
 
 interface ChatHeaderProps {
   onClose: () => void;
 }
-
-const TEAM_INITIALS = ['NF', 'MG', 'LR'] as const;
 
 export function ChatHeader({ onClose }: ChatHeaderProps) {
   return (
@@ -16,12 +15,15 @@ export function ChatHeader({ onClose }: ChatHeaderProps) {
 
       <div className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <TeamAvatarStack />
+          <BrandAvatar />
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[14px] font-semibold">Asistente CPIQ</p>
+            <p className="truncate text-[14px] font-semibold">{BRANDING.widget.title}</p>
             <p className="flex items-center gap-1.5 text-[11px] text-white/80">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_2px_rgba(16,185,129,0.25)]" />
-              En línea · te respondemos en minutos
+              <span
+                aria-hidden
+                className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_0_2px_rgba(16,185,129,0.25)]"
+              />
+              {BRANDING.widget.status}
             </p>
           </div>
         </div>
@@ -39,22 +41,13 @@ export function ChatHeader({ onClose }: ChatHeaderProps) {
   );
 }
 
-function TeamAvatarStack() {
+function BrandAvatar() {
   return (
-    <div className="flex -space-x-2.5">
-      <div className="z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[12px] font-bold text-brand ring-2 ring-brand-dark">
-        C
-      </div>
-      {TEAM_INITIALS.map((initials, idx) => (
-        <div
-          key={initials}
-          className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-[10.5px] font-semibold text-white backdrop-blur ring-2 ring-brand-dark ${
-            idx === 0 ? 'z-20' : idx === 1 ? 'z-10' : 'z-0'
-          }`}
-        >
-          {initials}
-        </div>
-      ))}
+    <div
+      aria-hidden
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-[14px] font-bold text-white shadow-[inset_0_0_0_1.5px_rgba(255,255,255,0.25)] backdrop-blur"
+    >
+      {BRANDING.widget.avatarInitial}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useHostContext } from '@/hooks/useHostContext';
 import { useChatFlow } from '@/hooks/useChatFlow';
 import { useAutoScroll } from '@/hooks/useAutoScroll';
@@ -43,6 +43,16 @@ export default function WidgetPage() {
   const scrollRef = useAutoScroll<HTMLDivElement>(`${messages.length}-${typing}`);
 
   const messagesWithAvatar = useMemo(() => decorateAvatars(messages), [messages]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        host.send({ type: 'cpiq:close' });
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [host]);
 
   return (
     <main className="flex h-full flex-col bg-slate-50">

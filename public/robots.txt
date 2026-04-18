@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# Este dominio aloja el widget embebible del CPIQ — no debe ser indexado.
+# El contenido público vive en cpiq.com y panel.cpiq.com.

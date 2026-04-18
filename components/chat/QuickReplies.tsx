@@ -1,4 +1,5 @@
 import { PANEL_ACTIONS, type PanelAction } from '@/lib/panel-routes';
+import { BRANDING } from '@/lib/branding';
 import { ActionIcon, IconArrow } from '@/components/icons';
 
 interface QuickRepliesProps {
@@ -28,7 +29,7 @@ export function QuickReplies({ onSelect, variant = 'cards' }: QuickRepliesProps)
   return (
     <div className="animate-fade-in">
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-        Opciones rápidas
+        {BRANDING.chat.quickRepliesTitle}
       </p>
       <div className="flex flex-col gap-1.5">
         {PANEL_ACTIONS.map((action) => (
