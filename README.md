@@ -43,22 +43,47 @@ Tres piezas desacopladas:
 ```
 widget_cpiq_web/
 ├── app/
+│   ├── api/
+│   │   └── health/route.ts   ← Endpoint /api/health para monitoreo
 │   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx              ← UI dentro del iframe
+│   ├── layout.tsx            ← Metadata, OG, favicon, preconnect
+│   ├── page.tsx              ← Orquestador del chat (~100 líneas)
+│   ├── error.tsx             ← Error boundary visual del iframe
+│   ├── not-found.tsx         ← 404 dentro del iframe
+│   └── types.ts              ← ChatMessage, HostContext, eventos
+├── components/
+│   ├── chat/
+│   │   ├── ChatHeader.tsx    ← Gradient + avatar + close
+│   │   ├── Composer.tsx      ← Input readonly + hint
+│   │   ├── HeroIntro.tsx     ← Saludo inicial
+│   │   ├── MessageBubble.tsx ← Burbujas bot/user/cta (memoized)
+│   │   ├── QuickReplies.tsx  ← Cards (idle) / Chips (conversación)
+│   │   └── TypingIndicator.tsx
+│   └── icons.tsx             ← SVG icons + ActionIcon mapper
+├── hooks/
+│   ├── useAutoScroll.ts      ← Scroll al bottom respetando reduced-motion
+│   ├── useChatFlow.ts        ← Estado de mensajes + typing + handleSelect
+│   └── useHostContext.ts     ← clientId + postMessage al host
 ├── lib/
-│   └── panel-routes.ts       ← Config de las 4 opciones + URL del panel
+│   ├── branding.ts           ← Copy centralizado (voz institucional, i18n-ready)
+│   └── panel-routes.ts       ← Las 4 opciones + URL del panel
 ├── public/
+│   ├── .well-known/
+│   │   └── security.txt      ← RFC 9116 contacto de seguridad
+│   ├── favicon.svg           ← Logo C con gradient brand
 │   ├── loader.js             ← Snippet embebible (punto de entrada)
-│   └── widget.js             ← Botón flotante + iframe
+│   ├── robots.txt            ← Disallow explícito
+│   └── widget.js             ← Botón flotante + iframe + teaser
 ├── examples/
-│   └── integration.html      ← Demo standalone
+│   ├── integration.html      ← Demo técnica con API
+│   └── mock-cpiq.html        ← Sitio mock CPIQ (dark mode)
 ├── .env.example
+├── CHANGELOG.md
+├── README.md
 ├── next.config.mjs
 ├── package.json
 ├── tailwind.config.ts
-├── tsconfig.json
-└── README.md
+└── tsconfig.json
 ```
 
 ---
@@ -71,7 +96,29 @@ cp .env.example .env.local
 npm run dev                   # Next.js en http://localhost:3000
 ```
 
-Abrí `examples/integration.html` con un servidor estático (ej. `npx serve examples`) y vas a ver el widget cargando desde `localhost:3000`.
+Abrí `examples/mock-cpiq.html` con un servidor estático (ej. `npx serve examples -l 5500`) y navegá a `http://localhost:5500/mock-cpiq` — el widget se carga desde el dev server local.
+
+> **No abras el HTML con `file://` (doble click)**. Los navegadores bloquean scripts externos con `crossOrigin` cuando el origen es `null`. Usá siempre un server HTTP.
+
+---
+
+## Cambiar copy del widget
+
+Toda la voz del producto vive en un solo archivo: **`lib/branding.ts`**.
+
+Cambiar cualquier string ahí actualiza toda la UI (welcome, hero, confirmaciones, CTA, footer, placeholders, textos de error). Ejemplo:
+
+```ts
+// lib/branding.ts
+chat: {
+  welcome: 'Hola. Soy el asistente del CPIQ. ¿En qué podemos ayudarte?',
+  ctaText: 'Abrir en el portal',
+  confirmationFor: (label) => `Perfecto. Te redirigimos al portal para continuar con ${label.toLowerCase()}.`,
+  // ...
+}
+```
+
+Si mañana querés sumar inglés/portugués, el archivo ya está estructurado para envolverlo con un hook `useBranding(lang)`.
 
 ---
 
@@ -128,10 +175,19 @@ Una vez cargado, el widget expone `window.CPIQWidget`:
 window.CPIQWidget.open();
 window.CPIQWidget.close();
 window.CPIQWidget.toggle();
-window.CPIQWidget.version;            // string
-window.CPIQWidget.config;             // objeto congelado con la config resuelta
+
+window.CPIQWidget.showTeaser();        // mostrar burbuja a demanda
+window.CPIQWidget.hideTeaser();        // ocultar sin recordar
+window.CPIQWidget.dismissTeaser();     // ocultar + recordar 30 días (localStorage)
+window.CPIQWidget.resetTeaser();       // limpiar el dismiss guardado
+
+window.CPIQWidget.version;             // string
+window.CPIQWidget.config;              // objeto congelado con la config resuelta
 window.CPIQWidget.on('navigate', (d) => { /* ... */ });
 ```
+
+También: **la tecla Escape cierra el widget** cuando está abierto. Al cerrar, el foco
+vuelve al elemento que lo había abierto (accesibilidad estándar).
 
 ### Eventos (listeners o `window.addEventListener('cpiq:<event>', ...)`)
 
@@ -144,8 +200,23 @@ window.CPIQWidget.on('navigate', (d) => { /* ... */ });
 | `teaser-shown` | `{ clientId }` | Cuando aparece la burbuja de saludo |
 | `teaser-click` | `{ clientId }` | Usuario clickeó la burbuja (abre el widget) |
 | `teaser-dismissed` | `{ byUser, clientId }` | Usuario cerró la burbuja con × |
+| `error` | `{ digest, message }` | Error boundary capturó un fallo en el iframe |
 
 Perfecto para conectar con GA4, Segment, Plausible, etc.
+
+---
+
+## Endpoints y monitoreo
+
+| Endpoint | Propósito | Output |
+|---|---|---|
+| `GET /` | App del widget (dentro del iframe) | HTML |
+| `GET /loader.js` | Snippet embebible | JS · `Cache-Control: max-age=300` |
+| `GET /widget.js` | Botón flotante + iframe + teaser | JS · `Cache-Control: max-age=3600, s-maxage=86400` |
+| `GET /api/health` | Health check para monitoreo | `{ok, service, version, timestamp}` · `Cache-Control: no-store` |
+| `GET /favicon.svg` | Favicon institucional | SVG con gradient brand |
+| `GET /robots.txt` | Disallow all (no indexable) | text/plain |
+| `GET /.well-known/security.txt` | RFC 9116 — contacto de seguridad | text/plain |
 
 ---
 
@@ -198,6 +269,8 @@ Un solo dominio (`widget.cpiq.com`) sirve las 3 cosas — no hace falta CDN apar
    - `https://widget.cpiq.com/` → app del widget (UI con 4 opciones)
    - `https://widget.cpiq.com/loader.js` → loader (200 OK, `Content-Type: application/javascript`)
    - `https://widget.cpiq.com/widget.js` → widget principal
+   - `https://widget.cpiq.com/api/health` → `{ok:true, service:"cpiq-widget", ...}`
+   - `https://widget.cpiq.com/favicon.svg` → favicon renderiza
 
 ### Cache busting
 
@@ -225,11 +298,13 @@ Implementado de arranque:
 
 - [x] Validación de origin en `postMessage` (iframe → host)
 - [x] Sanitización de `clientId`, `primaryColor`, `version` en `widget.js`
-- [x] CSP `frame-ancestors` configurable
+- [x] CSP `frame-ancestors` configurable vía `NEXT_PUBLIC_ALLOWED_HOSTS`
 - [x] `referrerpolicy="strict-origin-when-cross-origin"` en el iframe
 - [x] `rel="noopener noreferrer"` en los links al panel
-- [x] `X-Content-Type-Options: nosniff`
-- [x] `robots: noindex, nofollow` en la app (no queremos que el iframe aparezca en Google)
+- [x] `X-Content-Type-Options: nosniff` en todos los endpoints
+- [x] `robots: noindex, nofollow` en la app + `/robots.txt` explícito
+- [x] `security.txt` (RFC 9116) en `/.well-known/security.txt`
+- [x] `formatDetection` desactivado (no autolinkea teléfonos/emails)
 
 Lo que NO implementa (a propósito):
 
@@ -247,6 +322,40 @@ El diseño ya deja lugar para:
 2. **Analytics** — eventos `cpiq:*` listos para enganchar a cualquier tracker sin modificar el widget.
 3. **postMessage bidireccional** — el canal ya está abierto; agregar más eventos (ej. `cpiq:auth-required`) es trivial.
 4. **Configuración por script** — cada tag `<script>` puede tener su propia config (colores, posición, cliente) sin rebuild.
+5. **i18n** — `lib/branding.ts` ya aísla todo el copy, listo para envolver en `useBranding(lang)`.
+
+---
+
+## Production readiness checklist
+
+Antes de ir a producción, verificá:
+
+### Infraestructura
+- [ ] Proyecto desplegado en Vercel (o provider equivalente)
+- [ ] Env vars configuradas: `NEXT_PUBLIC_PANEL_URL`, `NEXT_PUBLIC_WIDGET_URL`, `NEXT_PUBLIC_ALLOWED_HOSTS`, `NEXT_PUBLIC_WIDGET_VERSION`
+- [ ] `NEXT_PUBLIC_ALLOWED_HOSTS` restringido a los dominios reales del CPIQ (no `*`)
+- [ ] Dominio custom apuntado al deploy (o subdominio `.vercel.app` estable)
+- [ ] HTTPS activo (automático en Vercel)
+- [ ] `/api/health` responde 200 con `{ok:true}`
+
+### Accesibilidad
+- [x] `aria-label` en todos los botones
+- [x] `aria-live` en el typing indicator
+- [x] `aria-expanded` en el botón flotante
+- [x] Escape cierra el widget
+- [x] Focus restore al cerrar
+- [x] `prefers-reduced-motion` respetado (animaciones desactivadas)
+- [x] Focus visible en todos los interactivos
+
+### Observabilidad
+- [ ] Eventos `cpiq:*` conectados a GA4 / Plausible / Segment
+- [ ] Uptime monitor apuntado a `/api/health` (UptimeRobot, BetterStack, etc.)
+- [ ] Error boundary emite `cpiq:error` al host — logueado en el tracker
+
+### Contenido
+- [ ] `lib/branding.ts` revisado por alguien del CPIQ (voz institucional)
+- [ ] `lib/panel-routes.ts` tiene las rutas reales del panel
+- [ ] `security.txt` con el email de contacto real de seguridad
 
 ---
 
@@ -254,8 +363,15 @@ El diseño ya deja lugar para:
 
 | Comando | Uso |
 |---|---|
-| `npm run dev` | Dev server en `localhost:3000` |
-| `npm run build` | Build de producción |
-| `npm run start` | Sirve el build |
-| `npm run typecheck` | TypeScript sin emitir |
-| `npm run lint` | ESLint (Next.js) |
+| `npm run dev` | Dev server en `localhost:3000` (hot reload) |
+| `npm run build` | Build de producción optimizado |
+| `npm run start` | Sirve el build local |
+| `npm run typecheck` | TypeScript sin emitir (chequeo rápido sin build) |
+| `npm run lint` | ESLint (config default de Next.js) |
+
+---
+
+## Licencia
+
+UNLICENSED — software propietario del Consejo Profesional de Ingeniería Química.
+Ver [CHANGELOG.md](./CHANGELOG.md) para el historial de versiones.
