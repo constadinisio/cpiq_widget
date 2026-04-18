@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CPIQ Widget · Demo de integración</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; background: #f5f7fb; color: #0f172a; }
+    main { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+    h1 { font-size: 28px; margin: 0 0 8px; }
+    p { color: #475569; line-height: 1.55; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 12px; overflow-x: auto; font-size: 13px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px 24px; margin: 16px 0; }
+    button { background: #0B5FFF; color: #fff; border: 0; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    button + button { margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sitio del cliente (demo)</h1>
+    <p>Este HTML muestra cómo queda el widget CPIQ embebido en cualquier página. El botón flotante aparece abajo a la derecha.</p>
+
+    <div class="card">
+      <h2 style="margin-top:0">Snippet de integración</h2>
+      <p>Pegá este script justo antes de <code>&lt;/body&gt;</code>:</p>
+<pre>&lt;script
+  src="https://widget.cpiq.com/loader.js"
+  data-position="bottom-right"
+  data-primary-color="#0B5FFF"
+  data-panel-origin="https://panel.cpiq.com"
+  data-client-id="demo"
+  data-version="1"
+  data-teaser-text="Chat con el Consejo"
+  data-teaser-delay="1500"
+  async&gt;&lt;/script&gt;</pre>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">API programática</h2>
+      <p>Una vez cargado, el widget expone <code>window.CPIQWidget</code>:</p>
+      <button onclick="window.CPIQWidget && window.CPIQWidget.open()">Abrir</button>
+      <button onclick="window.CPIQWidget && window.CPIQWidget.close()">Cerrar</button>
+      <button onclick="window.CPIQWidget && window.CPIQWidget.toggle()">Toggle</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Escuchar eventos (analytics)</h2>
+<pre>window.addEventListener('cpiq:navigate', (e) =&gt; {
+  console.log('click en opción', e.detail);
+  // enviar a GA / Segment / Plausible
+});
+
+window.addEventListener('cpiq:toggle', (e) =&gt; {
+  console.log('widget abierto?', e.detail.open);
+});</pre>
+    </div>
+  </main>
+
+  <!--
+    Widget CPIQ — en producción usar:
+    https://widget.cpiq.com/loader.js
+    Para desarrollo local:
+  -->
+  <script
+    src="http://localhost:3000/loader.js"
+    data-position="bottom-right"
+    data-primary-color="#0B5FFF"
+    data-panel-origin="https://panel.cpiq.com"
+    data-client-id="demo"
+    data-version="dev"
+    data-teaser-text="Chat con el Consejo"
+    data-teaser-delay="1500"
+    async></script>
+
+  <script>
+    window.addEventListener('cpiq:navigate', function (e) {
+      console.log('[demo] cpiq:navigate', e.detail);
+    });
+    window.addEventListener('cpiq:toggle', function (e) {
+      console.log('[demo] cpiq:toggle', e.detail);
+    });
+    window.addEventListener('cpiq:mounted', function (e) {
+      console.log('[demo] cpiq:mounted', e.detail);
+    });
+  </script>
+</body>
+</html>
